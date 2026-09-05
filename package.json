@@ -1,0 +1,16 @@
+{
+  "name": "taskcenter",
+  "private": true,
+  "packageManager": "pnpm@11.5.1",
+  "scripts": {
+    "stack:up": "podman-compose up -d",
+    "stack:down": "podman-compose down",
+    "stack:logs": "podman-compose logs -f postgres",
+    "typecheck": "for p in apps/* packages/*; do tsc --noEmit -p \"$p\" || exit 1; done",
+    "verify": "node scripts/verify.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@taskcenter/api-gateway",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@taskcenter/contracts": "workspace:*",
+    "pg": "^8.13.0",
+    "typeorm": "^0.3.20"
+  }
+}
