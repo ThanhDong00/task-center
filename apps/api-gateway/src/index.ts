@@ -1,5 +1,6 @@
 // API Gateway (ticket #3): routes /api/auth/* to auth-service, validates JWT
 // on protected REST before proxying. Stateless in v1 (no DB reads).
+import axios from 'axios';
 import express from 'express';
 import type { Request, Response } from 'express';
 import { jwtSecret, verifyJwt } from '@taskcenter/contracts';
@@ -25,19 +26,24 @@ app.use('/api/auth', async (req: Request, res: Response) => {
   const chunks: Buffer[] = [];
   for await (const c of req) chunks.push(c as Buffer);
   try {
-    const upstreamRes = await fetch(`${AUTH_URL}${upstream}`, {
+    const upstreamRes = await axios.request({
       method: req.method,
+      url: `${AUTH_URL}${upstream}`,
       headers: {
         ...(req.headers['content-type'] ? { 'content-type': req.headers['content-type'] } : {}),
         ...(req.headers.authorization ? { authorization: req.headers.authorization } : {}),
         ...(req.headers.cookie ? { cookie: req.headers.cookie } : {}),
       },
-      body: chunks.length ? Buffer.concat(chunks) : undefined,
+      data: chunks.length ? Buffer.concat(chunks) : undefined,
+      validateStatus: () => true,
+      responseType: 'arraybuffer',
     });
-    const setCookie = upstreamRes.headers.get('set-cookie');
-    if (setCookie) res.setHeader('set-cookie', setCookie);
-    res.status(upstreamRes.status).type(upstreamRes.headers.get('content-type') ?? 'application/json');
-    res.send(Buffer.from(await upstreamRes.arrayBuffer()));
+    const setCookie = upstreamRes.headers['set-cookie'];
+    if (setCookie) res.setHeader('set-cookie', setCookie as string | string[]);
+    res
+      .status(upstreamRes.status)
+      .type((upstreamRes.headers['content-type'] as string | undefined) ?? 'application/json');
+    res.send(Buffer.from(upstreamRes.data as ArrayBuffer));
   } catch {
     res.status(502).json({ error: 'auth-service unreachable' });
   }

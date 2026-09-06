@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@taskcenter/contracts": "workspace:*",
+    "axios": "^1.20.0",
     "express": "^5.2.1",
     "pg": "^8.13.0",
     "typeorm": "^0.3.20"
