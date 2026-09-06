@@ -7,7 +7,10 @@
     "stack:down": "podman-compose down",
     "stack:logs": "podman-compose logs -f postgres",
     "typecheck": "for p in apps/* packages/*; do tsc --noEmit -p \"$p\" || exit 1; done",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "verify:auth": "node scripts/verify-auth.mjs",
+    "dev:auth": "pnpm --filter @taskcenter/auth-service start",
+    "dev:gateway": "pnpm --filter @taskcenter/api-gateway start"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
