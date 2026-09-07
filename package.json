@@ -9,7 +9,9 @@
     "typecheck": "for p in apps/* packages/*; do tsc --noEmit -p \"$p\" || exit 1; done",
     "verify": "node scripts/verify.mjs",
     "verify:auth": "node scripts/verify-auth.mjs",
+    "verify:tasks": "node scripts/verify-tasks.mjs",
     "dev:auth": "pnpm --filter @taskcenter/auth-service start",
+    "dev:task": "pnpm --filter @taskcenter/task-service start",
     "dev:gateway": "pnpm --filter @taskcenter/api-gateway start"
   },
   "devDependencies": {

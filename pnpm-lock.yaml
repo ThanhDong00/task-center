@@ -85,12 +85,19 @@ importers:
       '@taskcenter/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
       pg:
         specifier: ^8.13.0
         version: 8.23.0
       typeorm:
         specifier: ^0.3.20
         version: 0.3.31(pg@8.23.0)
+    devDependencies:
+      '@types/express':
+        specifier: ^5.0.6
+        version: 5.0.6
 
   packages/contracts:
     devDependencies:

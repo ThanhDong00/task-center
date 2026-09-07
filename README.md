@@ -12,8 +12,12 @@ pnpm typecheck   # tsc --noEmit across apps/* and packages/*
 
 # Auth end-to-end (issue #3): one terminal per service, then verify
 pnpm dev:auth    # auth-service :3001 (register/login/refresh/me)
-pnpm dev:gateway # gateway :3000 (JWT verify + proxy /api/auth/*)
+pnpm dev:gateway # gateway :3000 (JWT verify + proxy /api/auth/*, /api/tasks/*)
 pnpm verify:auth # gateway REST checks: register, login, refresh, me, 401s
+
+# Personal tasks (issue #4): task-service alongside the above, then verify
+pnpm dev:task    # task-service :3002 (personal task CRUD)
+pnpm verify:tasks # gateway REST checks: CRUD, status, priority/due date, creator-only
 ```
 
 Requires: node 24, pnpm 11, podman + podman-compose (or `docker compose up -d`).
