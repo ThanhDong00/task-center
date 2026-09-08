@@ -10,6 +10,7 @@ import { dataSource } from "./db.ts";
 const PORT = Number(process.env.PORT ?? 3000);
 const AUTH_URL = process.env.AUTH_URL ?? "http://localhost:3001";
 const TASK_URL = process.env.TASK_URL ?? "http://localhost:3002";
+const GROUP_URL = process.env.GROUP_URL ?? "http://localhost:3003";
 const SECRET = jwtSecret();
 
 // Public auth paths skip JWT validation; everything else needs access token.
@@ -82,9 +83,15 @@ app.use("/api/tasks", async (req: Request, res: Response) => {
   await proxyTo(req, res, TASK_URL);
 });
 
+app.use(["/api/groups", "/api/invitations"], async (req: Request, res: Response) => {
+  if (!authorized(req))
+    return void res.status(401).json({ error: "unauthorized" });
+  await proxyTo(req, res, GROUP_URL);
+});
+
 app.use((_req, res) => res.status(404).json({ error: "not found" }));
 
 console.log(
-  `api-gateway owns ${(dataSource.options as { database?: string }).database}; auth -> ${AUTH_URL}; tasks -> ${TASK_URL}`,
+  `api-gateway owns ${(dataSource.options as { database?: string }).database}; auth -> ${AUTH_URL}; tasks -> ${TASK_URL}; groups -> ${GROUP_URL}`,
 );
 app.listen(PORT, () => console.log(`api-gateway :${PORT}`));

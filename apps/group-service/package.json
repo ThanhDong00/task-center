@@ -2,12 +2,18 @@
   "name": "@taskcenter/group-service",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "start": "node src/index.ts"
   },
   "dependencies": {
     "@taskcenter/contracts": "workspace:*",
+    "express": "^5.2.1",
     "pg": "^8.13.0",
     "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
   }
 }
