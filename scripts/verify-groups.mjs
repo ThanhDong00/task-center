@@ -247,6 +247,7 @@ await step('owner transfers ownership; old owner loses delete, new owner deletes
     userId: member.id,
     isMember: true,
     role: 'owner',
+    groupExists: true,
   });
   const del = await api(member.token, `/api/groups/${groupId}`, { method: 'DELETE' });
   assert.equal(del.status, 204, `owner delete want 204 got ${del.status}`);

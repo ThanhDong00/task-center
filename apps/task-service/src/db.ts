@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { TaskSchema } from './task.ts';
+import { CommentSchema, TaskSchema } from './task.ts';
 
 // Owns Task, comments. Sole writer/reader of task_db (ADR-0003).
 // ponytail: synchronize:true, migration once schema churn settles.
@@ -10,6 +10,6 @@ export const dataSource = new DataSource({
   username: process.env.PGUSER ?? 'postgres',
   password: process.env.PGPASSWORD ?? 'postgres',
   database: process.env.PGDATABASE ?? 'task_db',
-  entities: [TaskSchema],
+  entities: [TaskSchema, CommentSchema],
   synchronize: true,
 });

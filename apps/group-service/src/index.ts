@@ -66,6 +66,7 @@ async function main(): Promise<void> {
       userId: req.params.userId,
       isMember: !!m,
       role: m?.role ?? null,
+      groupExists: !!(await groups.findOneBy({ id: req.params.id })),
     });
   });
 
