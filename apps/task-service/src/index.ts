@@ -9,7 +9,12 @@ import express from "express";
 import type { Request, Response } from "express";
 import { jwtSecret, verifyJwt } from "@taskcenter/contracts";
 import { dataSource } from "./db.ts";
-import { CommentSchema, TaskSchema, publicComment, publicTask } from "./task.ts";
+import {
+  CommentSchema,
+  TaskSchema,
+  publicComment,
+  publicTask,
+} from "./task.ts";
 import type { TaskPriority, TaskRow, TaskStatus } from "./task.ts";
 
 const PORT = Number(process.env.PORT ?? 3002);
@@ -129,8 +134,15 @@ async function main(): Promise<void> {
     if (!me) return;
 
     const body = req.body as Record<string, unknown>;
-    const { title, description, status, priority, dueDate, groupId, assigneeId } =
-      body;
+    const {
+      title,
+      description,
+      status,
+      priority,
+      dueDate,
+      groupId,
+      assigneeId,
+    } = body;
     if (!validTitle(title))
       return void res.status(400).json({ error: "title 1-200 chars" });
     if (status !== undefined && !STATUSES.includes(status as TaskStatus))
@@ -174,22 +186,30 @@ async function main(): Promise<void> {
     // member too (fail-closed when group-service is unreachable).
     if (typeof groupId !== "string" || !groupId.trim())
       return void res.status(400).json({ error: "groupId required" });
+
     const mine = await membership(groupId, me.id);
     if (!mine) return void res.status(502).json({ error: "group unavailable" });
     // Unknown group is a bad request (personal-task-era clients get 400,
     // not a group-existence oracle); real group without membership is 404.
     if (mine.groupExists === false)
       return void res.status(400).json({ error: "unknown group" });
-    if (!mine.isMember) return void res.status(404).json({ error: "not found" });
+    if (!mine.isMember)
+      return void res.status(404).json({ error: "not found" });
 
     let assignee: string | null = null;
     if (assigneeId != null) {
       if (typeof assigneeId !== "string" || !assigneeId.trim())
-        return void res.status(400).json({ error: "assignee must be a member" });
+        return void res
+          .status(400)
+          .json({ error: "assignee must be a member" });
+
       const m = await membership(groupId, assigneeId);
       if (!m) return void res.status(502).json({ error: "group unavailable" });
       if (!m.isMember)
-        return void res.status(400).json({ error: "assignee must be a member" });
+        return void res
+          .status(400)
+          .json({ error: "assignee must be a member" });
+
       assignee = assigneeId;
     }
 
@@ -204,12 +224,14 @@ async function main(): Promise<void> {
       priority: (priority as TaskPriority) ?? "medium",
       dueDate: due ?? null,
     });
+
     res.status(201).json(publicTask(saved));
   });
 
   app.get("/tasks", async (req, res) => {
     const me = requireAccess(req, res);
     if (!me) return;
+
     const groupId = req.query.groupId as string | undefined;
     if (groupId == null) {
       const own = await repo.findBy({ creatorId: me.id });
@@ -217,6 +239,7 @@ async function main(): Promise<void> {
         own.filter((t) => t.groupId == null).map(publicTask),
       );
     }
+
     if (typeof groupId !== "string" || !groupId)
       return void res.status(400).json({ error: "groupId required" });
     if (!(await memberOr(res, groupId, me.id))) return;
@@ -225,6 +248,7 @@ async function main(): Promise<void> {
       if (!(await sweepAssignee(t)))
         return void res.status(502).json({ error: "group unavailable" });
     }
+
     res.json(tasks.map(publicTask));
   });
 
@@ -239,6 +263,7 @@ async function main(): Promise<void> {
       res.status(404).json({ error: "not found" });
       return null;
     }
+
     if (task.groupId == null) {
       if (task.creatorId !== me.id) {
         res.status(404).json({ error: "not found" });
@@ -246,6 +271,7 @@ async function main(): Promise<void> {
       }
       return { task, role: null };
     }
+
     const mine = await memberOr(res, task.groupId, me.id);
     if (!mine) return null;
     if (!(await sweepAssignee(task))) {
@@ -258,8 +284,10 @@ async function main(): Promise<void> {
   app.get("/tasks/:id", async (req, res) => {
     const me = requireAccess(req, res);
     if (!me) return;
+
     const found = await loadVisible(req, res, me);
     if (!found) return;
+
     res.json(publicTask(found.task));
   });
 
@@ -281,10 +309,12 @@ async function main(): Promise<void> {
       // Group task: view-open already checked; edit-narrow below.
       const mine = await memberOr(res, found.groupId, me.id);
       if (!mine) return;
+
       if (!(await sweepAssignee(found)))
         return void res.status(502).json({ error: "group unavailable" });
 
       const privileged = mine.role === "owner" || mine.role === "admin";
+
       const canEdit =
         privileged || found.creatorId === me.id || found.assigneeId === me.id;
       if (!canEdit) return void res.status(403).json({ error: "forbidden" });
@@ -296,6 +326,7 @@ async function main(): Promise<void> {
         const canAssign = privileged || found.creatorId === me.id;
         if (!canAssign)
           return void res.status(403).json({ error: "forbidden" });
+
         const next = body.assigneeId;
         if (next === null) {
           found.assigneeId = null;
@@ -304,6 +335,7 @@ async function main(): Promise<void> {
             return void res
               .status(400)
               .json({ error: "assignee must be a member" });
+
           const m = await membership(found.groupId, next);
           if (!m)
             return void res.status(502).json({ error: "group unavailable" });
@@ -311,6 +343,7 @@ async function main(): Promise<void> {
             return void res
               .status(400)
               .json({ error: "assignee must be a member" });
+
           found.assigneeId = next;
         }
       }
@@ -356,23 +389,29 @@ async function main(): Promise<void> {
   app.delete("/tasks/:id", async (req, res) => {
     const me = requireAccess(req, res);
     if (!me) return;
+
     const found = await repo.findOneBy({ id: req.params.id });
     // v1 deletes personal tasks only (spec #1 story 25); group tasks stay
     // so a removal never destroys team history.
     if (!found || found.groupId != null || found.creatorId !== me.id)
       return void res.status(404).json({ error: "not found" });
+
     await repo.remove(found);
+
     res.status(204).send();
   });
 
   app.post("/tasks/:id/comments", async (req, res) => {
     const me = requireAccess(req, res);
     if (!me) return;
+
     const found = await loadVisible(req, res, me);
     if (!found) return;
+
     const { body } = req.body as Record<string, unknown>;
     if (!validBody(body))
       return void res.status(400).json({ error: "body 1-2000 chars" });
+
     const saved = await comments.save({
       id: randomUUID(),
       taskId: found.task.id,
@@ -380,18 +419,19 @@ async function main(): Promise<void> {
       body: body.trim(),
       createdAt: new Date(),
     });
+
     res.status(201).json(publicComment(saved));
   });
 
   app.get("/tasks/:id/comments", async (req, res) => {
     const me = requireAccess(req, res);
     if (!me) return;
+
     const found = await loadVisible(req, res, me);
     if (!found) return;
+
     res.json(
-      (
-        await comments.findBy({ taskId: found.task.id })
-      )
+      (await comments.findBy({ taskId: found.task.id }))
         .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt))
         .map(publicComment),
     );
