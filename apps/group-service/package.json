@@ -9,11 +9,13 @@
   },
   "dependencies": {
     "@taskcenter/contracts": "workspace:*",
+    "amqplib": "^2.0.1",
     "express": "^5.2.1",
     "pg": "^8.13.0",
     "typeorm": "^0.3.20"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.8",
     "@types/express": "^5.0.6"
   }
 }

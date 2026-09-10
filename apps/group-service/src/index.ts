@@ -5,7 +5,14 @@
 import { randomUUID } from "node:crypto";
 import express from "express";
 import type { Request, Response } from "express";
-import { jwtSecret, verifyJwt } from "@taskcenter/contracts";
+import {
+  EVENT_TYPES,
+  NOTIF_EXCHANGE,
+  jwtSecret,
+  rabbitUrl,
+  verifyJwt,
+} from "@taskcenter/contracts";
+import type { EventPayload } from "@taskcenter/contracts";
 import { dataSource } from "./db.ts";
 import {
   BanSchema,
@@ -36,6 +43,30 @@ function validUserId(v: unknown): v is string {
   return typeof v === "string" && v.trim().length >= 1;
 }
 
+// Fire-and-forget event publish (issue #7). Fail-open like task-service.
+let mqChannel: {
+  publish(ex: string, key: string, buf: Buffer, opts?: object): boolean;
+} | null = null;
+async function publishEvent(msg: EventPayload): Promise<void> {
+  try {
+    let ch = mqChannel;
+    if (!ch) {
+      const { connect } = await import("amqplib");
+      const created = await (await connect(rabbitUrl())).createChannel();
+      await created.assertExchange(NOTIF_EXCHANGE, "topic", { durable: true });
+      mqChannel = ch = created;
+    }
+    ch.publish(
+      NOTIF_EXCHANGE,
+      msg.type,
+      Buffer.from(JSON.stringify(msg)),
+      { persistent: true },
+    );
+  } catch {
+    mqChannel = null;
+  }
+}
+
 async function main(): Promise<void> {
   await dataSource.initialize();
   const groups = dataSource.getRepository(GroupSchema);
@@ -53,6 +84,19 @@ async function main(): Promise<void> {
   );
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
+
+  // Full member list for notification-service fan-out (issue #7).
+  // Internal route: no JWT, reachable only inside the cluster network.
+  app.get("/internal/groups/:id/members", async (req, res) => {
+    if (!(await groups.findOneBy({ id: req.params.id })))
+      return void res.status(404).json({ error: "not found" });
+    res.json({
+      groupId: req.params.id,
+      userIds: (await memberships.findBy({ groupId: req.params.id })).map(
+        (m) => m.userId,
+      ),
+    });
+  });
 
   // Sync membership check for task-service assignment (ADR-0001).
   // Internal route: no JWT, reachable only inside the cluster network.
@@ -235,17 +279,18 @@ async function main(): Promise<void> {
     )
       return void res.status(409).json({ error: "already invited" });
 
-    res.status(201).json(
-      publicInvitation(
-        await invitations.save({
-          id: randomUUID(),
-          groupId: found.group.id,
-          userId: target,
-          createdBy: me.id,
-          status: "pending",
-        }),
-      ),
-    );
+    const invite = await invitations.save({
+      id: randomUUID(),
+      groupId: found.group.id,
+      userId: target,
+      createdBy: me.id,
+      status: "pending",
+    });
+    void publishEvent({
+      type: EVENT_TYPES.GROUP_INVITATION_CREATED,
+      data: { groupId: invite.groupId, invitedUserId: invite.userId },
+    });
+    res.status(201).json(publicInvitation(invite));
   });
 
   app.get("/invitations", async (req, res) => {
@@ -290,7 +335,13 @@ async function main(): Promise<void> {
       invite.status = "declined";
     }
 
-    res.json(publicInvitation(await invitations.save(invite)));
+    const savedInvite = await invitations.save(invite);
+    if (accept)
+      void publishEvent({
+        type: EVENT_TYPES.GROUP_MEMBER_ADDED,
+        data: { groupId: savedInvite.groupId, userId: me.id },
+      });
+    res.json(publicInvitation(savedInvite));
   };
 
   app.post("/invitations/:id/accept", async (req, res) =>

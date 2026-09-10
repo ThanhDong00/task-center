@@ -7,7 +7,14 @@
 import { randomUUID } from "node:crypto";
 import express from "express";
 import type { Request, Response } from "express";
-import { jwtSecret, verifyJwt } from "@taskcenter/contracts";
+import {
+  EVENT_TYPES,
+  NOTIF_EXCHANGE,
+  jwtSecret,
+  rabbitUrl,
+  verifyJwt,
+} from "@taskcenter/contracts";
+import type { EventPayload } from "@taskcenter/contracts";
 import { dataSource } from "./db.ts";
 import {
   CommentSchema,
@@ -23,6 +30,31 @@ const GROUP_URL = process.env.GROUP_URL ?? "http://localhost:3003";
 
 const STATUSES: TaskStatus[] = ["todo", "in-progress", "done"];
 const PRIORITIES: TaskPriority[] = ["low", "medium", "high"];
+
+// Fire-and-forget event publish (issue #7). Lazy singleton channel;
+// failures resolve to null so task writes never break when MQ is down.
+let mqChannel: {
+  publish(ex: string, key: string, buf: Buffer, opts?: object): boolean;
+} | null = null;
+async function publishEvent(msg: EventPayload): Promise<void> {
+  try {
+    let ch = mqChannel;
+    if (!ch) {
+      const { connect } = await import("amqplib");
+      const created = await (await connect(rabbitUrl())).createChannel();
+      await created.assertExchange(NOTIF_EXCHANGE, "topic", { durable: true });
+      mqChannel = ch = created;
+    }
+    ch.publish(
+      NOTIF_EXCHANGE,
+      msg.type,
+      Buffer.from(JSON.stringify(msg)),
+      { persistent: true },
+    );
+  } catch {
+    mqChannel = null; // reconnect on next event
+  }
+}
 
 function validTitle(v: unknown): v is string {
   return (
@@ -179,6 +211,15 @@ async function main(): Promise<void> {
         priority: (priority as TaskPriority) ?? "medium",
         dueDate: due ?? null,
       });
+      void publishEvent({
+        type: EVENT_TYPES.TASK_CREATED,
+        data: {
+          taskId: saved.id,
+          creatorId: saved.creatorId,
+          assigneeId: null,
+          groupId: null,
+        },
+      });
       return void res.status(201).json(publicTask(saved));
     }
 
@@ -225,6 +266,15 @@ async function main(): Promise<void> {
       dueDate: due ?? null,
     });
 
+    void publishEvent({
+      type: EVENT_TYPES.TASK_CREATED,
+      data: {
+        taskId: saved.id,
+        creatorId: saved.creatorId,
+        assigneeId: saved.assigneeId,
+        groupId: saved.groupId,
+      },
+    });
     res.status(201).json(publicTask(saved));
   });
 
@@ -383,7 +433,17 @@ async function main(): Promise<void> {
       found.dueDate = due;
     }
 
-    res.json(publicTask(await repo.save(found)));
+    const updated = await repo.save(found);
+    void publishEvent({
+      type: EVENT_TYPES.TASK_UPDATED,
+      data: {
+        taskId: updated.id,
+        creatorId: updated.creatorId,
+        assigneeId: updated.assigneeId,
+        groupId: updated.groupId,
+      },
+    });
+    res.json(publicTask(updated));
   });
 
   app.delete("/tasks/:id", async (req, res) => {

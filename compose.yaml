@@ -3,6 +3,20 @@
 name: taskcenter
 
 services:
+  rabbitmq:
+    image: docker.io/library/rabbitmq:4.2.9-management
+    environment:
+      RABBITMQ_ERLANG_COOKIE: taskcenter-dev-cookie
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD-SHELL', 'rabbitmq-diagnostics -q ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
   postgres:
     image: docker.io/library/postgres:16-alpine
     environment:
@@ -21,3 +35,4 @@ services:
 
 volumes:
   pgdata:
+  rabbitmq-data:

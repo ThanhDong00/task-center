@@ -81,6 +81,15 @@ export function signJwt(
   return `${header}.${body}.${sig}`;
 }
 
+// Shared RabbitMQ topology (issue #7): one topic exchange, routing key =
+// event type. Pure constants here so gateway/auth stay dependency-free;
+// services own their amqplib connect/publish/consume.
+export const NOTIF_EXCHANGE = 'taskcenter';
+
+export function rabbitUrl(): string {
+  return process.env.RABBIT_URL ?? 'amqp://guest:guest@localhost:5672';
+}
+
 export function verifyJwt(token: string, secret: string): JwtClaims | null {
   const [header, body, sig] = token.split('.');
   if (!header || !body || !sig) return null;
