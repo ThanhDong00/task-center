@@ -81,8 +81,7 @@ async function main(): Promise<void> {
   // WS auth: access token from handshake, one room per user.
   io.use((socket, next) => {
     const token = (socket.handshake.auth as { token?: unknown }).token;
-    const claims =
-      typeof token === "string" ? verifyJwt(token, SECRET) : null;
+    const claims = typeof token === "string" ? verifyJwt(token, SECRET) : null;
     if (!claims || claims.type !== "access")
       return next(new Error("unauthorized"));
     socket.join(`user:${claims.sub}`);
@@ -101,7 +100,10 @@ async function main(): Promise<void> {
       read: false,
       createdAt: new Date(),
     });
-    io.to(`user:${parts.userId}`).emit("notification", publicNotification(saved));
+    io.to(`user:${parts.userId}`).emit(
+      "notification",
+      publicNotification(saved),
+    );
   };
 
   const handle = async (msg: EventPayload): Promise<void> => {
@@ -127,6 +129,7 @@ async function main(): Promise<void> {
           `${GROUP_URL}/internal/groups/${msg.data.groupId}/members`,
         );
         if (!res.ok) return;
+
         const { userIds } = (await res.json()) as { userIds: string[] };
         for (const userId of userIds)
           await notify({
@@ -180,7 +183,9 @@ async function main(): Promise<void> {
 
   void consume();
   server.listen(PORT, () =>
-    console.log(`notification-service :${PORT} (db=${dataSource.options.database})`),
+    console.log(
+      `notification-service :${PORT} (db=${dataSource.options.database})`,
+    ),
   );
 }
 

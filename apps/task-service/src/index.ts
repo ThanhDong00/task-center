@@ -45,12 +45,9 @@ async function publishEvent(msg: EventPayload): Promise<void> {
       await created.assertExchange(NOTIF_EXCHANGE, "topic", { durable: true });
       mqChannel = ch = created;
     }
-    ch.publish(
-      NOTIF_EXCHANGE,
-      msg.type,
-      Buffer.from(JSON.stringify(msg)),
-      { persistent: true },
-    );
+    ch.publish(NOTIF_EXCHANGE, msg.type, Buffer.from(JSON.stringify(msg)), {
+      persistent: true,
+    });
   } catch {
     mqChannel = null; // reconnect on next event
   }
