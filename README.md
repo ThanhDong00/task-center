@@ -18,6 +18,10 @@ pnpm verify:auth # gateway REST checks: register, login, refresh, me, 401s
 # Personal tasks (issue #4): task-service alongside the above, then verify
 pnpm dev:task    # task-service :3002 (personal task CRUD)
 pnpm verify:tasks # gateway REST checks: CRUD, status, priority/due date, creator-only
+
+# Web desk (issue #8): all five services + gateway up, then the SPA
+pnpm dev:web     # vite :5173 (gateway :3000, notifications WS direct :3004)
+pnpm verify:web  # SPA refresh-retry client checks (no infra needed)
 ```
 
 Requires: node 24, pnpm 11, podman + podman-compose (or `docker compose up -d`).
@@ -29,5 +33,6 @@ Requires: node 24, pnpm 11, podman + podman-compose (or `docker compose up -d`).
 - `apps/group-service` → `group_db` (owns Group, membership, Invitation)
 - `apps/task-service` → `task_db` (owns Task, comments)
 - `apps/notification-service` → `notification_db` (owns Notification)
+- `apps/web` → React + Vite SPA (auth, tasks, groups, live signals)
 - `packages/contracts` → strict shared RabbitMQ event types
 - `db/init.sql` → creates the five logical databases (ADR-0003)

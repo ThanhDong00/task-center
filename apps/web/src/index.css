@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* TaskCenter desk tokens (issue #8): pale slate paper, blue-slate ink,
+   one working accent per state. Status reads from the slip's top edge. */
+@theme {
+  --color-paper: #edf1f0;
+  --color-slip: #ffffff;
+  --color-ink: #24333e;
+  --color-faint: #5c6f7a;
+  --color-line: #d7dee2;
+  --color-doing: #b45309;
+  --color-done: #166534;
+  --color-urgent: #b91c1c;
+  --color-signal: #1d4ed8;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

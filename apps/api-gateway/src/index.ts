@@ -22,6 +22,23 @@ const PUBLIC = new Set([
 ]);
 
 const app = express();
+// Browser SPA (issue #8): reflect origin + credentials so the httpOnly
+// refresh cookie flows. Gateway still never proxies WS (ADR-0002).
+app.use((req: Request, res: Response, next: express.NextFunction) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("access-control-allow-origin", origin);
+    res.setHeader("vary", "origin");
+  }
+  res.setHeader("access-control-allow-credentials", "true");
+  res.setHeader("access-control-allow-headers", "authorization, content-type");
+  res.setHeader(
+    "access-control-allow-methods",
+    "GET, POST, PATCH, DELETE, OPTIONS",
+  );
+  if (req.method === "OPTIONS") return void res.status(204).send();
+  next();
+});
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 function authorized(req: Request): boolean {
