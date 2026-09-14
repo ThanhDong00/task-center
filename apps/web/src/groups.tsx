@@ -3,9 +3,17 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./auth.tsx";
 import { readJson } from "./api.ts";
-import type { Group, GroupMember, Invitation } from "./api.ts";
+import type { Group, GroupMember, Invitation, Notification } from "./api.ts";
 
-function Detail({ group, onChange }: { group: Group; onChange: () => void }) {
+function Detail({
+  group,
+  signal,
+  onChange,
+}: {
+  group: Group;
+  signal: Notification | null;
+  onChange: () => void;
+}) {
   const { call, user } = useAuth();
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [inviteId, setInviteId] = useState("");
@@ -30,6 +38,17 @@ function Detail({ group, onChange }: { group: Group; onChange: () => void }) {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group.id]);
+
+  // Someone joined this group: refresh the member list live.
+  const signalId = signal?.id;
+  useEffect(() => {
+    if (
+      signal?.type === "group.member.added" &&
+      signal.groupId === group.id
+    )
+      void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signalId]);
 
   const run = async (label: string, fn: () => Promise<Response>) => {
     setMsg(null);
@@ -223,9 +242,11 @@ function Detail({ group, onChange }: { group: Group; onChange: () => void }) {
 export function GroupsRail({
   selected,
   onSelect,
+  signal,
 }: {
   selected: string | null;
   onSelect: (id: string | null) => void;
+  signal: Notification | null;
 }) {
   const { call, user } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
@@ -243,6 +264,19 @@ export function GroupsRail({
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Live refresh: a new invitation (or join in one of my groups) reloads
+  // the rail instead of asking for F5.
+  const signalId = signal?.id;
+  useEffect(() => {
+    if (!signal) return;
+    if (
+      signal.type === "group.invitation.created" ||
+      signal.type === "group.member.added"
+    )
+      void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signalId]);
 
   const create = async () => {
     if (!name.trim()) return;
@@ -349,6 +383,7 @@ export function GroupsRail({
         <Detail
           key={current.id}
           group={current}
+          signal={signal}
           onChange={() => {
             void load();
           }}

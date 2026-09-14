@@ -55,7 +55,7 @@ function Login() {
 function Desk() {
   const { user, logout } = useAuth();
   const [groupId, setGroupId] = useState<string | null>(null);
-  const { items, unread, markRead } = useNotifications();
+  const { items, unread, lastNote, markRead } = useNotifications();
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16">
@@ -77,9 +77,13 @@ function Desk() {
       </header>
       <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
         <aside aria-label="Groups">
-          <GroupsRail selected={groupId} onSelect={setGroupId} />
+          <GroupsRail selected={groupId} onSelect={setGroupId} signal={lastNote} />
         </aside>
-        <TasksView key={groupId ?? "personal"} groupId={groupId} />
+        <TasksView
+          key={groupId ?? "personal"}
+          groupId={groupId}
+          signal={lastNote}
+        />
         <aside aria-label="Notifications">
           <SignalRail items={items} unread={unread} markRead={markRead} />
         </aside>

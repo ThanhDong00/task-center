@@ -10,10 +10,12 @@ import type { Notification } from "./api.ts";
 export function useNotifications(): {
   items: Notification[];
   unread: number;
+  lastNote: Notification | null;
   markRead: (id: string) => void;
 } {
   const { call, token } = useAuth();
   const [items, setItems] = useState<Notification[]>([]);
+  const [lastNote, setLastNote] = useState<Notification | null>(null);
 
   useEffect(() => {
     let sock: Socket | null = null;
@@ -23,11 +25,12 @@ export function useNotifications(): {
       if (r.ok && live) setItems((await readJson<Notification[]>(r)) ?? []);
       if (token && live) {
         sock = io(NOTIF_URL, { auth: { token } });
-        sock.on("notification", (n: Notification) =>
+        sock.on("notification", (n: Notification) => {
+          setLastNote(n); // other panes reload off this (no page refresh)
           setItems((prev) =>
             prev.some((p) => p.id === n.id) ? prev : [n, ...prev],
-          ),
-        );
+          );
+        });
       }
     })();
     return () => {
@@ -45,7 +48,12 @@ export function useNotifications(): {
     }
   };
 
-  return { items, unread: items.filter((n) => !n.read).length, markRead };
+  return {
+    items,
+    unread: items.filter((n) => !n.read).length,
+    lastNote,
+    markRead,
+  };
 }
 
 function describe(n: Notification): string {

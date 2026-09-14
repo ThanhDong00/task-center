@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./auth.tsx";
 import { readJson } from "./api.ts";
-import type { GroupMember, Task, TaskComment, TaskPriority, TaskStatus } from "./api.ts";
+import type {
+  GroupMember,
+  Notification,
+  Task,
+  TaskComment,
+  TaskPriority,
+  TaskStatus,
+} from "./api.ts";
 
 const LANES: { id: TaskStatus; label: string; edge: string }[] = [
   { id: "todo", label: "To do", edge: "border-t-line" },
@@ -231,7 +238,13 @@ function Slip({
   );
 }
 
-export function TasksView({ groupId }: { groupId: string | null }) {
+export function TasksView({
+  groupId,
+  signal,
+}: {
+  groupId: string | null;
+  signal: Notification | null;
+}) {
   const { call } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -260,6 +273,20 @@ export function TasksView({ groupId }: { groupId: string | null }) {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
+
+  // Live refresh: task created/updated (incl. reassignment) and member
+  // changes land over WS; the board reloads instead of asking for F5.
+  const signalId = signal?.id;
+  useEffect(() => {
+    if (!signal) return;
+    if (
+      signal.type === "task.created" ||
+      signal.type === "task.updated" ||
+      signal.type === "group.member.added"
+    )
+      void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signalId]);
 
   const create = async () => {
     if (!title.trim()) return;
