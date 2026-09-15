@@ -19,11 +19,13 @@
     "dev:group": "pnpm --filter @taskcenter/group-service start",
     "dev:gateway": "pnpm --filter @taskcenter/api-gateway start",
     "dev:notif": "pnpm --filter @taskcenter/notification-service start",
+    "dev:all": "concurrently -n gateway,auth,task,group,notif -c auto \"pnpm dev:gateway\" \"pnpm dev:auth\" \"pnpm dev:task\" \"pnpm dev:group\" \"pnpm dev:notif\"",
     "dev:web": "pnpm --filter @taskcenter/web dev",
     "build:web": "pnpm --filter @taskcenter/web build"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
+    "concurrently": "^10.0.5",
     "socket.io-client": "^4.8.3",
     "typescript": "^5.9.3"
   }
