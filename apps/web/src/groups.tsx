@@ -9,10 +9,12 @@ function Detail({
   group,
   signal,
   onChange,
+  onGone,
 }: {
   group: Group;
   signal: Notification | null;
   onChange: () => void;
+  onGone: () => void;
 }) {
   const { call, user } = useAuth();
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -50,11 +52,18 @@ function Detail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signalId]);
 
-  const run = async (label: string, fn: () => Promise<Response>) => {
+  // Leave/delete dissolve my membership: onGone sends me back to the
+  // Personal desk instead of stranding me on a 404 board.
+  const run = async (
+    label: string,
+    fn: () => Promise<Response>,
+    andGo = false,
+  ) => {
     setMsg(null);
     const r = await fn();
     if (r.ok) {
-      onChange();
+      if (andGo) onGone();
+      else onChange();
     } else {
       const b = (await readJson<{ error?: string }>(r)) ?? {};
       setMsg(`${label}: ${b.error ?? r.status}`);
@@ -213,8 +222,10 @@ function Detail({
             className="text-urgent underline"
             onClick={() => {
               if (confirm("Delete this group?")) {
-                void run("Delete failed", () =>
-                  call(`/groups/${group.id}`, { method: "DELETE" }),
+                void run(
+                  "Delete failed",
+                  () => call(`/groups/${group.id}`, { method: "DELETE" }),
+                  true,
                 );
               }
             }}
@@ -227,8 +238,10 @@ function Detail({
         <button
           className="text-sm underline text-faint"
           onClick={() =>
-            void run("Leave failed", () =>
-              call(`/groups/${group.id}/leave`, { method: "POST" }),
+            void run(
+              "Leave failed",
+              () => call(`/groups/${group.id}/leave`, { method: "POST" }),
+              true,
             )
           }
         >
@@ -385,6 +398,10 @@ export function GroupsRail({
           group={current}
           signal={signal}
           onChange={() => {
+            void load();
+          }}
+          onGone={() => {
+            onSelect(null);
             void load();
           }}
         />

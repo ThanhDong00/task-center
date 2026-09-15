@@ -288,6 +288,15 @@ export function TasksView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signalId]);
 
+  // Poll fallback: task events notify creator + assignee only (spec), so a
+  // teammate's new task emits nothing for me. Refresh on a timer instead.
+  // ponytail: 10s poll; per-group WS room if this ever feels laggy.
+  useEffect(() => {
+    const t = setInterval(() => void load(), 10000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
+
   const create = async () => {
     if (!title.trim()) return;
     const r = await call("/tasks", {
