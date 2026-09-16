@@ -1,6 +1,7 @@
 // Workboard (issue #8): personal tasks or one group's tasks in three
 // status lanes. View-open for members, edit-narrow enforced server-side.
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { useAuth } from "./auth.tsx";
 import { readJson } from "./api.ts";
 import type {
@@ -12,10 +13,38 @@ import type {
   TaskStatus,
 } from "./api.ts";
 
-const LANES: { id: TaskStatus; label: string; edge: string }[] = [
-  { id: "todo", label: "To do", edge: "border-t-line" },
-  { id: "in-progress", label: "Doing", edge: "border-t-doing" },
-  { id: "done", label: "Done", edge: "border-t-done" },
+const LANES: {
+  id: TaskStatus;
+  label: string;
+  edge: string;
+  wash: string;
+  dot: string;
+  count: string;
+}[] = [
+  {
+    id: "todo",
+    label: "To do",
+    edge: "border-l-todo",
+    wash: "bg-todowash/60 border-line",
+    dot: "bg-todo",
+    count: "bg-slip text-faint border-line",
+  },
+  {
+    id: "in-progress",
+    label: "Doing",
+    edge: "border-l-doing",
+    wash: "bg-doingwash/60 border-doing/25",
+    dot: "bg-doing",
+    count: "bg-doing/10 text-doing border-doing/20",
+  },
+  {
+    id: "done",
+    label: "Done",
+    edge: "border-l-done",
+    wash: "bg-donewash/60 border-done/25",
+    dot: "bg-done",
+    count: "bg-done/10 text-done border-done/20",
+  },
 ];
 
 const NEXT: Record<TaskStatus, TaskStatus | null> = {
@@ -25,14 +54,24 @@ const NEXT: Record<TaskStatus, TaskStatus | null> = {
 };
 
 function priorityStyle(p: TaskPriority): string {
+  const base =
+    "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold";
   return p === "high"
-    ? "text-urgent"
+    ? `${base} border-urgent/25 bg-urgentwash text-urgent`
     : p === "medium"
-      ? "text-doing"
-      : "text-faint";
+      ? `${base} border-ink/30 bg-ink/10 text-ink`
+      : `${base} border-line bg-todowash text-faint`;
 }
 
-function Comments({ taskId }: { taskId: string }) {
+function Comments({
+  taskId,
+  leading,
+  trailing,
+}: {
+  taskId: string;
+  leading?: ReactNode;
+  trailing?: ReactNode;
+}) {
   const { call } = useAuth();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<TaskComment[]>([]);
@@ -56,32 +95,45 @@ function Comments({ taskId }: { taskId: string }) {
   };
 
   return (
-    <div className="mt-2">
-      <button
-        className="text-sm text-faint underline"
-        onClick={() => {
-          setOpen(!open);
-          if (!open) void load();
-        }}
-      >
-        {open ? "Hide notes" : `Notes${items.length ? ` (${items.length})` : ""}`}
-      </button>
+    <div className="mt-3 border-t border-line/70 pt-1.5">
+      <div className="flex items-center gap-1">
+        {leading}
+        <button
+          className="inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-[13px] font-medium text-faint transition hover:bg-todowash hover:text-ink"
+          title="Toggle notes"
+          onClick={() => {
+            setOpen(!open);
+            if (!open) void load();
+          }}
+        >
+          <span aria-hidden="true">{open ? "\u25BE" : "\u25B8"}</span>
+          {open
+            ? "Hide notes"
+            : `Notes${items.length ? ` (${items.length})` : ""}`}
+        </button>
+        {trailing && (
+          <span className="ml-auto flex items-center gap-1">{trailing}</span>
+        )}
+      </div>
       {open && (
         <div className="mt-2 space-y-2">
           {items.map((c) => (
-            <p key={c.id} className="text-sm">
+            <p
+              key={c.id}
+              className="rounded-lg bg-todowash px-2.5 py-1.5 text-[13px] leading-relaxed"
+            >
               {c.body}
             </p>
           ))}
           <div className="flex gap-2">
             <input
-              className="min-w-0 flex-1 rounded border border-line bg-slip px-2 py-1 text-sm"
+              className="min-w-0 flex-1 rounded-lg border border-line bg-slip px-2.5 py-1.5 text-[13px] focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
               placeholder="Add a note"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
             />
             <button
-              className="rounded border border-line px-2 py-1 text-sm"
+              className="rounded-lg border border-line bg-slip px-2.5 py-1.5 text-[13px] font-medium shadow-xs transition hover:bg-todowash"
               onClick={() => void post()}
             >
               Add
@@ -111,7 +163,7 @@ function Slip({
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [dueDate, setDueDate] = useState(task.dueDate?.slice(0, 10) ?? "");
   const [assigneeId, setAssignee] = useState(task.assigneeId ?? "");
-  const edge = LANES.find((l) => l.id === task.status)?.edge ?? "border-t-line";
+  const edge = LANES.find((l) => l.id === task.status)?.edge ?? "border-l-todo";
 
   const patch = async (body: object) => {
     const r = await call(`/tasks/${task.id}`, {
@@ -131,16 +183,38 @@ function Slip({
   };
 
   return (
-    <article className={`rounded-lg border border-line bg-slip border-t-4 ${edge} p-3`}>
-      <h4 className="font-semibold">{task.title}</h4>
+    <article
+      className={`rounded-xl border border-line bg-slip border-l-4 ${edge} p-4 shadow-sm transition hover:shadow-md`}
+    >
+      <div className="flex items-center gap-1">
+        <h4 className="min-w-0 flex-1 text-[15px] leading-snug font-semibold">
+          {task.title}
+        </h4>
+        <button
+          className="-mr-1 shrink-0 rounded-lg p-1.5 text-faint transition hover:bg-todowash hover:text-ink"
+          title={editing ? "Close editor" : "Edit task"}
+          aria-label={editing ? "Close editor" : "Edit task"}
+          onClick={() => setEditing(!editing)}
+        >
+          <span aria-hidden="true">&#9998;</span>
+        </button>
+      </div>
       {task.description && (
-        <p className="mt-1 text-sm text-faint">{task.description}</p>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-faint">
+          {task.description}
+        </p>
       )}
-      <p className="mt-2 flex gap-3 text-sm">
+      <p className="mt-2.5 flex flex-wrap items-center gap-2 text-xs font-light text-faint">
         <span className={priorityStyle(task.priority)}>{task.priority}</span>
-        {task.dueDate && <span>due {task.dueDate.slice(0, 10)}</span>}
+        {task.dueDate && (
+          <span className="tabular-nums">due {task.dueDate.slice(0, 10)}</span>
+        )}
         {task.assigneeId && (
-          <span>
+          <span className="inline-flex items-center gap-1">
+            <span
+              aria-hidden="true"
+              className="inline-block size-1.5 rounded-full bg-faint"
+            />
             {task.assigneeId === user?.id
               ? "you"
               : members.find((m) => m.userId === task.assigneeId)
@@ -149,46 +223,22 @@ function Slip({
           </span>
         )}
       </p>
-      <div className="mt-2 flex flex-wrap gap-2 text-sm">
-        {NEXT[task.status] && (
-          <button
-            className="rounded border border-line px-2 py-0.5"
-            onClick={() => void patch({ status: NEXT[task.status] })}
-          >
-            Move to {LANES.find((l) => l.id === NEXT[task.status])?.label}
-          </button>
-        )}
-        <button
-          className="rounded border border-line px-2 py-0.5"
-          onClick={() => setEditing(!editing)}
-        >
-          {editing ? "Close" : "Edit"}
-        </button>
-        {!groupId && (
-          <button
-            className="rounded border border-line px-2 py-0.5 text-urgent"
-            onClick={() => void remove()}
-          >
-            Delete
-          </button>
-        )}
-      </div>
       {editing && (
-        <div className="mt-2 space-y-2">
+        <div className="mt-3 space-y-2 rounded-lg bg-todowash/70 p-3">
           <input
-            className="w-full rounded border border-line px-2 py-1 text-sm"
+            className="w-full rounded-lg border border-line bg-slip px-2.5 py-1.5 text-sm focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
           <input
-            className="w-full rounded border border-line px-2 py-1 text-sm"
+            className="w-full rounded-lg border border-line bg-slip px-2.5 py-1.5 text-sm focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
           <div className="flex gap-2">
             <select
-              className="rounded border border-line px-1 py-1 text-sm"
+              className="rounded-lg border border-line bg-slip px-2 py-1.5 text-sm focus:border-signal focus:outline-none"
               value={priority}
               onChange={(e) => setPriority(e.target.value as TaskPriority)}
             >
@@ -198,27 +248,29 @@ function Slip({
             </select>
             <input
               type="date"
-              className="rounded border border-line px-1 py-1 text-sm"
+              className="rounded-lg border border-line bg-slip px-2 py-1.5 text-sm focus:border-signal focus:outline-none"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
           </div>
           {groupId && (
             <select
-              className="w-full rounded border border-line px-1 py-1 text-sm"
+              className="w-full rounded-lg border border-line bg-slip px-2 py-1.5 text-sm focus:border-signal focus:outline-none"
               value={assigneeId}
               onChange={(e) => setAssignee(e.target.value)}
             >
               <option value="">Unassigned</option>
               {members.map((m) => (
                 <option key={m.userId} value={m.userId}>
-                  {m.userId === user?.id ? `you (${m.role})` : `${m.userId.slice(0, 8)} (${m.role})`}
+                  {m.userId === user?.id
+                    ? `you (${m.role})`
+                    : `${m.userId.slice(0, 8)} (${m.role})`}
                 </option>
               ))}
             </select>
           )}
           <button
-            className="rounded bg-ink px-3 py-1 text-sm text-white"
+            className="rounded-lg bg-ink px-3 py-1.5 text-[13px] font-semibold text-white shadow-xs transition hover:brightness-125"
             onClick={() =>
               void patch({
                 title,
@@ -233,7 +285,31 @@ function Slip({
           </button>
         </div>
       )}
-      <Comments taskId={task.id} />
+      <Comments
+        taskId={task.id}
+        leading={
+          NEXT[task.status] ? (
+            <button
+              className="rounded-lg border border-line bg-slip px-2.5 py-1 text-xs font-medium text-ink shadow-xs transition hover:border-ink/40 hover:bg-todowash"
+              onClick={() => void patch({ status: NEXT[task.status] })}
+            >
+              Move to {LANES.find((l) => l.id === NEXT[task.status])?.label}
+            </button>
+          ) : undefined
+        }
+        trailing={
+          !groupId ? (
+            <button
+              className="rounded-lg p-1.5 text-faint transition hover:bg-urgentwash hover:text-urgent"
+              title="Delete task"
+              aria-label="Delete task"
+              onClick={() => void remove()}
+            >
+              <span aria-hidden="true">&#9003;</span>
+            </button>
+          ) : undefined
+        }
+      />
     </article>
   );
 }
@@ -313,9 +389,12 @@ export function TasksView({
 
   if (failed)
     return (
-      <div className="rounded-lg border border-line bg-slip p-4">
-        <p>Could not load these tasks.</p>
-        <button className="mt-2 underline" onClick={() => void load()}>
+      <div className="rounded-2xl border border-urgent/25 bg-urgentwash p-5 shadow-sm">
+        <p className="font-semibold text-urgent">Could not load these tasks.</p>
+        <button
+          className="mt-3 rounded-lg bg-urgent px-3 py-1.5 text-sm font-semibold text-white shadow-xs transition hover:brightness-110"
+          onClick={() => void load()}
+        >
           Try again
         </button>
       </div>
@@ -323,9 +402,9 @@ export function TasksView({
 
   return (
     <section aria-label={groupId ? "Group tasks" : "Personal tasks"}>
-      <div className="flex gap-2">
+      <div className="flex gap-2 rounded-2xl border border-line bg-slip p-3 shadow-sm">
         <input
-          className="min-w-0 flex-1 rounded-lg border border-line bg-slip px-3 py-2"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-slip px-3.5 py-2.5 text-sm focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
           placeholder={groupId ? "New group task" : "New personal task"}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -334,27 +413,39 @@ export function TasksView({
           }}
         />
         <button
-          className="rounded-lg bg-ink px-4 py-2 text-white"
+          className="rounded-lg bg-ink px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-125 active:brightness-95"
           onClick={() => void create()}
         >
           Add
         </button>
       </div>
       {tasks.length === 0 ? (
-        <p className="mt-6 text-faint">
-          Nothing here yet. Add the first task above.
-        </p>
+        <div className="mt-5 rounded-2xl border border-dashed border-line bg-slip/60 p-8 text-center shadow-xs">
+          <p className="font-semibold">Nothing here yet</p>
+          <p className="mt-1 text-sm font-light text-faint">
+            Add the first task above to get started.
+          </p>
+        </div>
       ) : (
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-5 grid items-stretch gap-5 md:grid-cols-3">
           {LANES.map((lane) => (
-            <div key={lane.id}>
-              <h3 className="flex items-baseline gap-2 font-semibold">
+            <div
+              key={lane.id}
+              className={`rounded-2xl border p-3 shadow-xs ${lane.wash}`}
+            >
+              <h3 className="flex items-center gap-2 px-1 text-[15px] font-bold tracking-tight">
+                <span
+                  aria-hidden="true"
+                  className={`inline-block size-2.5 rounded-full ${lane.dot}`}
+                />
                 {lane.label}
-                <span className="text-sm font-normal tabular-nums text-faint">
+                <span
+                  className={`ml-auto rounded-full border px-2 py-0.5 text-xs font-semibold tabular-nums ${lane.count}`}
+                >
                   {tasks.filter((t) => t.status === lane.id).length}
                 </span>
               </h3>
-              <div className="mt-2 space-y-3">
+              <div className="mt-3 space-y-3">
                 {tasks
                   .filter((t) => t.status === lane.id)
                   .map((t) => (
@@ -366,6 +457,11 @@ export function TasksView({
                       onChange={() => void load()}
                     />
                   ))}
+                {tasks.filter((t) => t.status === lane.id).length === 0 && (
+                  <p className="rounded-xl border border-dashed border-line bg-slip/70 px-3 py-4 text-center text-xs font-light text-faint">
+                    No tasks
+                  </p>
+                )}
               </div>
             </div>
           ))}

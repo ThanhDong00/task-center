@@ -10,20 +10,20 @@ function Login() {
   const [password, setPassword] = useState("");
 
   return (
-    <main className="mx-auto mt-16 max-w-sm rounded-xl border border-line bg-slip p-6">
-      <h1 className="text-2xl font-bold tracking-tight">TaskCenter</h1>
-      <p className="mt-1 text-sm text-faint">
+    <main className="mx-auto mt-16 max-w-sm rounded-2xl border border-line bg-slip p-8 shadow-sm">
+      <h1 className="text-3xl font-bold tracking-tight">TaskCenter</h1>
+      <p className="mt-2 text-sm leading-relaxed text-faint">
         Personal tasks, group work, and live updates in one desk.
       </p>
-      <div className="mt-4 space-y-2">
+      <div className="mt-5 space-y-3">
         <input
-          className="w-full rounded-lg border border-line px-3 py-2"
+          className="w-full rounded-lg border border-line bg-slip px-3.5 py-2.5 text-sm shadow-xs focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
         <input
-          className="w-full rounded-lg border border-line px-3 py-2"
+          className="w-full rounded-lg border border-line bg-slip px-3.5 py-2.5 text-sm shadow-xs focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
           type="password"
           placeholder="Password"
           value={password}
@@ -34,15 +34,15 @@ function Login() {
         />
       </div>
       {error && <p className="mt-2 text-sm text-urgent">{error}</p>}
-      <div className="mt-4 flex gap-2">
+      <div className="mt-5 flex gap-2">
         <button
-          className="flex-1 rounded-lg bg-ink px-4 py-2 text-white"
+          className="flex-1 rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-125 active:brightness-95"
           onClick={() => void login(username, password)}
         >
           Sign in
         </button>
         <button
-          className="flex-1 rounded-lg border border-line px-4 py-2"
+          className="flex-1 rounded-lg border border-line bg-slip px-4 py-2.5 text-sm font-medium shadow-xs transition hover:bg-todowash"
           onClick={() => void register(username, password)}
         >
           Register
@@ -58,26 +58,40 @@ function Desk() {
   const { items, unread, lastNote, markRead } = useNotifications();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-16">
-      <header className="flex items-center justify-between py-4">
-        <h1 className="text-xl font-bold tracking-tight">
+    <div className="mx-auto max-w-7xl px-6 pb-20">
+      <header className="flex flex-wrap items-center justify-between gap-3 py-6">
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight">
           TaskCenter
-          {unread > 0 && (
-            <span className="ml-2 rounded-full bg-signal px-2 py-0.5 align-middle text-xs font-normal tabular-nums text-white">
+          {unread > 0 ? (
+            <span
+              className="rounded-full bg-signal px-2.5 py-0.5 align-middle text-xs font-semibold tabular-nums text-white shadow-sm"
+              title={`${unread} unread signals`}
+            >
               {unread}
+            </span>
+          ) : (
+            <span className="rounded-full border border-line bg-slip px-2.5 py-0.5 align-middle text-xs font-medium tabular-nums text-faint">
+              caught up
             </span>
           )}
         </h1>
-        <p className="text-sm text-faint">
-          {user?.username}{" "}
-          <button className="ml-2 underline" onClick={logout}>
+        <p className="flex items-center gap-3 rounded-full border border-line bg-slip py-1.5 pr-2 pl-4 text-sm shadow-xs">
+          <span className="font-medium">{user?.username}</span>
+          <button
+            className="rounded-full border border-line px-3 py-1 text-xs font-medium text-faint transition hover:bg-todowash hover:text-ink"
+            onClick={logout}
+          >
             Sign out
           </button>
         </p>
       </header>
-      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
+      <div className="grid items-start gap-8 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
         <aside aria-label="Groups">
-          <GroupsRail selected={groupId} onSelect={setGroupId} signal={lastNote} />
+          <GroupsRail
+            selected={groupId}
+            onSelect={setGroupId}
+            signal={lastNote}
+          />
         </aside>
         <TasksView
           key={groupId ?? "personal"}

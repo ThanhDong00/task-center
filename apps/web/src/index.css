@@ -1,17 +1,24 @@
 @import "tailwindcss";
 
-/* TaskCenter desk tokens (issue #8): pale slate paper, blue-slate ink,
-   one working accent per state. Status reads from the slip's top edge. */
+/* TaskCenter desk tokens: cool slate paper, blue-slate ink, one working
+   accent per state. Status reads from the slip's left edge; lanes sit in
+   tinted containers so columns scan as containers, not floating headers. */
 @theme {
-  --color-paper: #edf1f0;
+  --color-paper: #e8edf1;
   --color-slip: #ffffff;
-  --color-ink: #24333e;
+  --color-ink: #1e2e3a;
   --color-faint: #5c6f7a;
   --color-line: #d7dee2;
+  --color-todo: #64748b;
+  --color-todowash: #eef2f6;
   --color-doing: #b45309;
+  --color-doingwash: #fdf3e3;
   --color-done: #166534;
+  --color-donewash: #e8f4ec;
   --color-urgent: #b91c1c;
+  --color-urgentwash: #fdecec;
   --color-signal: #1d4ed8;
+  --color-signalwash: #e8effe;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 

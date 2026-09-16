@@ -44,10 +44,7 @@ function Detail({
   // Someone joined this group: refresh the member list live.
   const signalId = signal?.id;
   useEffect(() => {
-    if (
-      signal?.type === "group.member.added" &&
-      signal.groupId === group.id
-    )
+    if (signal?.type === "group.member.added" && signal.groupId === group.id)
       void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signalId]);
@@ -71,28 +68,39 @@ function Detail({
   };
 
   return (
-    <div className="mt-3 space-y-4 border-t border-line pt-3">
-      {msg && <p className="text-sm text-urgent">{msg}</p>}
+    <div className="space-y-4 rounded-2xl border border-line bg-slip p-4 shadow-sm">
+      {msg && (
+        <p className="rounded-lg bg-urgentwash px-3 py-2 text-[13px] font-medium text-urgent">
+          {msg}
+        </p>
+      )}
       {privileged ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 rounded-xl bg-todowash/60 p-3">
+          <label className="text-xs font-semibold text-faint">Group name</label>
           <input
-            className="rounded border border-line bg-slip px-2 py-1 text-sm"
+            className="rounded-lg border border-line bg-slip px-3 py-2 text-sm focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
+          <label className="mt-1 text-xs font-semibold text-faint">
+            Description
+          </label>
           <input
-            className="rounded border border-line bg-slip px-2 py-1 text-sm"
+            className="rounded-lg border border-line bg-slip px-3 py-2 text-sm focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
           <button
-            className="self-start rounded border border-line px-2 py-1 text-sm"
+            className="mt-1 self-start rounded-lg border border-line bg-slip px-3 py-1.5 text-[13px] font-semibold shadow-xs transition hover:bg-todowash"
             onClick={() =>
               void run("Rename failed", () =>
                 call(`/groups/${group.id}`, {
                   method: "PATCH",
-                  body: JSON.stringify({ name, description: description || null }),
+                  body: JSON.stringify({
+                    name,
+                    description: description || null,
+                  }),
                 }),
               )
             }
@@ -101,19 +109,29 @@ function Detail({
           </button>
         </div>
       ) : (
-        group.description && <p className="text-sm text-faint">{group.description}</p>
+        group.description && (
+          <p className="text-sm text-faint">{group.description}</p>
+        )
       )}
-      <div>
-        <h4 className="font-semibold">Members ({members.length})</h4>
-        <ul className="mt-1 space-y-1 text-sm">
+      <div className="rounded-xl border border-line/80 p-3">
+        <h4 className="text-sm font-bold tracking-tight">
+          Members ({members.length})
+        </h4>
+        <ul className="mt-2 space-y-1.5 text-sm">
           {members.map((m) => (
-            <li key={m.userId} className="flex items-center justify-between gap-2">
-              <span>
-                {m.userId === user?.id ? "you" : m.userId.slice(0, 8)} · {m.role}
+            <li
+              key={m.userId}
+              className="flex items-center justify-between gap-2 rounded-lg bg-todowash/60 px-2.5 py-1.5"
+            >
+              <span className="font-medium">
+                {m.userId === user?.id ? "you" : m.userId.slice(0, 8)}{" "}
+                <span className="ml-1 rounded-full border border-line bg-slip px-1.5 py-0.5 text-[11px] font-semibold text-faint">
+                  {m.role}
+                </span>
               </span>
               {privileged && m.userId !== user?.id && m.role !== "owner" && (
                 <button
-                  className="underline text-faint"
+                  className="rounded-md px-1.5 py-0.5 text-[13px] font-medium text-faint transition hover:bg-urgentwash hover:text-urgent"
                   onClick={() =>
                     void run("Remove failed", () =>
                       call(`/groups/${group.id}/members/${m.userId}`, {
@@ -133,15 +151,15 @@ function Detail({
         </ul>
       </div>
       {privileged && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 border-t border-line pt-4">
           <input
-            className="min-w-0 flex-1 rounded border border-line bg-slip px-2 py-1 text-sm"
+            className="min-w-0 flex-1 rounded-lg border border-line bg-slip px-3 py-2 text-sm focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
             placeholder="User id to invite"
             value={inviteId}
             onChange={(e) => setInviteId(e.target.value)}
           />
           <button
-            className="rounded border border-line px-2 py-1 text-sm"
+            className="rounded-lg bg-ink px-3 py-2 text-[13px] font-semibold text-white shadow-xs transition hover:brightness-125"
             onClick={() =>
               void run("Invite failed", () =>
                 call(`/groups/${group.id}/invites`, {
@@ -159,16 +177,19 @@ function Detail({
         </div>
       )}
       {owner && (
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2.5 rounded-xl border border-urgent/25 bg-urgentwash/50 p-3 text-sm">
+          <p className="text-xs font-bold tracking-tight text-urgent">
+            Danger zone
+          </p>
           <div className="flex gap-2">
             <input
-              className="min-w-0 flex-1 rounded border border-line bg-slip px-2 py-1"
+              className="min-w-0 flex-1 rounded-lg border border-urgent/25 bg-slip px-3 py-2 focus:border-urgent focus:ring-2 focus:ring-urgent/15 focus:outline-none"
               placeholder="User id to ban / unban"
               value={banId}
               onChange={(e) => setBanId(e.target.value)}
             />
             <button
-              className="rounded border border-line px-2 py-1"
+              className="rounded-lg bg-urgent px-3 py-2 font-semibold text-white shadow-xs transition hover:brightness-110"
               onClick={() =>
                 void run("Ban failed", () =>
                   call(`/groups/${group.id}/ban`, {
@@ -184,7 +205,7 @@ function Detail({
               Ban
             </button>
             <button
-              className="rounded border border-line px-2 py-1"
+              className="rounded-lg border border-urgent/30 bg-slip px-3 py-2 font-medium text-urgent transition hover:bg-urgentwash"
               onClick={() =>
                 void run("Unban failed", () =>
                   call(`/groups/${group.id}/unban`, {
@@ -199,13 +220,13 @@ function Detail({
           </div>
           <div className="flex gap-2">
             <input
-              className="min-w-0 flex-1 rounded border border-line bg-slip px-2 py-1"
+              className="min-w-0 flex-1 rounded-lg border border-urgent/25 bg-slip px-3 py-2 focus:border-urgent focus:ring-2 focus:ring-urgent/15 focus:outline-none"
               placeholder="User id for new owner"
               value={transferId}
               onChange={(e) => setTransferId(e.target.value)}
             />
             <button
-              className="rounded border border-line px-2 py-1"
+              className="rounded-lg border border-urgent/30 bg-slip px-3 py-2 font-medium text-urgent transition hover:bg-urgentwash"
               onClick={() =>
                 void run("Transfer failed", () =>
                   call(`/groups/${group.id}/transfer`, {
@@ -219,7 +240,7 @@ function Detail({
             </button>
           </div>
           <button
-            className="text-urgent underline"
+            className="w-full rounded-lg border border-urgent bg-slip px-3 py-2 font-semibold text-urgent shadow-xs transition hover:bg-urgent hover:text-white"
             onClick={() => {
               if (confirm("Delete this group?")) {
                 void run(
@@ -236,7 +257,7 @@ function Detail({
       )}
       {group.role !== "owner" && (
         <button
-          className="text-sm underline text-faint"
+          className="rounded-lg px-2 py-1 text-sm font-medium text-faint transition hover:bg-todowash hover:text-ink"
           onClick={() =>
             void run(
               "Leave failed",
@@ -314,74 +335,89 @@ export function GroupsRail({
   const current = groups.find((g) => g.id === selected) ?? null;
 
   return (
-    <div>
-      <button
-        className={`block w-full rounded-lg px-3 py-2 text-left ${
-          selected === null ? "bg-ink text-white" : "hover:bg-slip"
-        }`}
-        onClick={() => onSelect(null)}
-      >
-        Personal desk
-      </button>
-      <h3 className="mt-4 font-semibold">
-        Groups
-        <span className="ml-2 text-sm font-normal tabular-nums text-faint">
-          {groups.length}
-        </span>
-      </h3>
-      <ul className="mt-1 space-y-1">
-        {groups.map((g) => (
-          <li key={g.id}>
-            <button
-              className={`block w-full rounded-lg px-3 py-2 text-left ${
-                selected === g.id ? "bg-ink text-white" : "hover:bg-slip"
-              }`}
-              onClick={() => onSelect(g.id)}
-            >
-              {g.name}
-              <span className="ml-2 text-sm opacity-70">{g.role}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-2 flex gap-2">
-        <input
-          className="min-w-0 flex-1 rounded-lg border border-line bg-slip px-2 py-1 text-sm"
-          placeholder="New group"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void create();
-          }}
-        />
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-line bg-slip p-3 shadow-sm">
         <button
-          className="rounded-lg border border-line px-2 py-1 text-sm"
-          onClick={() => void create()}
+          className={`block w-full rounded-xl px-3.5 py-2.5 text-left text-[15px] font-bold tracking-tight transition ${
+            selected === null
+              ? "bg-ink text-white shadow-sm"
+              : "hover:bg-todowash"
+          }`}
+          onClick={() => onSelect(null)}
         >
-          Create
+          Personal desk
         </button>
       </div>
+      <div className="rounded-2xl border border-line bg-slip p-4 shadow-sm">
+        <h3 className="text-base font-bold tracking-tight">
+          Groups
+          <span className="ml-2 rounded-full border border-line bg-todowash px-2 py-0.5 text-xs font-semibold tabular-nums text-faint">
+            {groups.length}
+          </span>
+        </h3>
+        <ul className="mt-2.5 space-y-1.5">
+          {groups.map((g) => (
+            <li key={g.id}>
+              <button
+                className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                  selected === g.id
+                    ? "bg-ink font-semibold text-white shadow-sm"
+                    : "hover:bg-todowash"
+                }`}
+                onClick={() => onSelect(g.id)}
+              >
+                {g.name}
+                <span
+                  className={`ml-2 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${selected === g.id ? "bg-white/20" : "bg-todowash text-faint"}`}
+                >
+                  {g.role}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 flex gap-2 border-t border-line/70 pt-3">
+          <input
+            className="min-w-0 flex-1 rounded-lg border border-line bg-slip px-3 py-2 text-sm focus:border-signal focus:ring-2 focus:ring-signal/20 focus:outline-none"
+            placeholder="New group"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void create();
+            }}
+          />
+          <button
+            className="rounded-lg border border-line bg-slip px-3 py-2 text-sm font-semibold shadow-xs transition hover:bg-todowash"
+            onClick={() => void create()}
+          >
+            Create
+          </button>
+        </div>
+      </div>
       {invites.length > 0 && (
-        <div className="mt-4">
-          <h3 className="font-semibold">
+        <div className="rounded-2xl border border-signal/25 bg-signalwash p-4 shadow-sm">
+          <h3 className="text-base font-bold tracking-tight text-signal">
             Invitations
-            <span className="ml-2 text-sm font-normal tabular-nums text-faint">
+            <span className="ml-2 rounded-full bg-signal px-2 py-0.5 text-xs font-semibold tabular-nums text-white">
               {invites.length}
             </span>
           </h3>
-          <ul className="mt-1 space-y-2">
+          <ul className="mt-2.5 space-y-2">
             {invites.map((iv) => (
-              <li key={iv.id} className="rounded-lg border border-line bg-slip p-2 text-sm">
-                <p>Group {iv.groupId.slice(0, 8)}</p>
-                <div className="mt-1 flex gap-2">
+              <li
+                key={iv.id}
+                className="rounded-xl border border-signal/20 bg-slip p-3 text-sm shadow-xs"
+              >
+                <p className="font-medium">Group {iv.groupId.slice(0, 8)}</p>
+                <div className="mt-2 flex gap-2">
                   <button
-                    className="rounded border border-line px-2 py-0.5"
+                    className="rounded-lg bg-signal px-3 py-1 text-[13px] font-semibold text-white shadow-xs transition hover:brightness-110"
                     onClick={() => void answer(iv.id, true)}
                   >
                     Accept
                   </button>
                   <button
-                    className="rounded border border-line px-2 py-0.5 text-faint"
+                    className="rounded-lg border border-line bg-slip px-3 py-1 text-[13px] font-medium text-faint transition hover:bg-todowash hover:text-ink"
                     onClick={() => void answer(iv.id, false)}
                   >
                     Decline
@@ -407,7 +443,9 @@ export function GroupsRail({
         />
       )}
       {user && (
-        <p className="mt-4 break-all text-xs text-faint">Your user id: {user.id}</p>
+        <p className="rounded-xl bg-todowash/70 px-3 py-2 break-all text-xs font-light text-faint">
+          Your user id: {user.id}
+        </p>
       )}
     </div>
   );
